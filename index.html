@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Zhang Shenbei</title>
+
+    <style>
+      /* ================== Root Variables ================== */
+      :root {
+        --radius: 18px;
+        --edge-gap: 24px;
+      }
+
+      /* ================== Base Reset ================== */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        overflow-x: hidden;
+      }
+
+      /* ================== Section Layout ================== */
+      header,
+      section {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 8vh 8vw;
+      }
+      header {
+        background: #3cb3db;
+      }
+      #about {
+        background: #ffb2a4;
+      }
+      #work {
+        background: #ffe066;
+      }
+      #contact {
+        background: #9ad3bc;
+      }
+
+      #work {
+        height: auto;
+        min-height: 100vh;
+      }
+
+      /* ================== Fixed Top Group ================== */
+      #top-group {
+        position: fixed;
+        top: 1.2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        z-index: 20;
+      }
+
+      /* ================== Avatar ================== */
+      #avatar-wrap {
+        display: inline-block;
+      }
+
+      #avatar {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: transform 0.28s cubic-bezier(0.25, 0.6, 0.3, 1);
+        will-change: transform;
+      }
+
+      /* 悬停只改变图片的 scale，不影响外层容器的 translateX */
+      #avatar:hover {
+        transform: scale(1.15);
+      }
+
+      /* ================== Navigation ================== */
+      nav {
+        display: flex;
+        gap: 1rem;
+        padding: 0.6rem 1rem;
+        background: transparent;
+        border: 9px dotted #fff;
+        border-radius: var(--radius);
+      }
+      nav a {
+        position: relative;
+        display: inline-block;
+        padding: 0.6rem 1.2rem;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 9px;
+        overflow: hidden;
+        transition: transform 0.3s ease;  
+      }
+      nav a:hover {
+        transform: scale(1.08);
+      }
+      nav a::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: #fff;
+        opacity: 0.15;
+        transform: translateY(100%);
+        transition: transform 0.45s ease;
+      }
+      nav a:hover::before {
+        transform: translateY(0);
+      }
+
+      /* ================== Typography ================== */
+      h1 {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        color: #fff;
+        font-weight: 700;
+      }
+      .section-title {
+        font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+        margin-bottom: 2rem;
+      }
+
+      /* ================== Work Categories ================== */
+      .work-categories {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+      }
+      .work-category .work-subtitle {
+        font-size: 1.15rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin: 0 0 0.5rem;
+      }
+
+      /* ================== Horizontal Work Rails (loop) ================== */
+      .work-rail {
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--radius);
+        background: transparent;
+        border: 12px dotted #fff;
+        padding: 0.8rem 1rem; /* 增加左右内边距，留出更舒适距离 */
+        width: min(100%, 64vw);
+        margin-inline: 0;
+        isolation: isolate;
+      }
+      /* 内部倒角裁剪，避免内容贴着外框的直角区域 */
+      .rail-clip {
+        border-radius: calc(var(--radius) - 6px);
+        overflow: hidden;
+      }
+      .rail-track {
+        display: flex;
+        gap: 0.8rem;
+        width: max-content;
+        animation: none;
+        will-change: transform;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+      }
+
+      .rail-track .item {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .rail-track .item img {
+          height: 32vh;
+          max-height: 500px;
+        width: auto;
+        object-fit: contain;
+        display: block;
+        border-radius: calc(var(--radius) - 6px);
+      }
+      .rail-track .placeholder {
+        width: clamp(200px, 45vw, 520px);
+          height: 34vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius);
+        background: #f5f5f7;
+        color: #666;
+      }
+
+      /* ================== Fade-In Animation ================== */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(25px);
+        transition: 0.6s ease;
+      }
+      .fade-in.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- top bar -->
+    <div id="top-group">
+      <div id="avatar-wrap" title="收回并回到顶部" onclick="goTopAndRetract()">
+        <img id="avatar" src="assets/avatar.png" alt="个人头像" />
+      </div>
+      <nav>
+        <a href="#about">About Me</a>
+        <a href="#work">Works</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+
+    <header>
+      <h1 class="fade-in">
+        Hello, I am Zhang Shenbei
+        <br />
+        Welcome to My Page!
+      </h1>
+    </header>
+
+    <section id="about">
+      <h2 class="section-title fade-in">About Me</h2>
+      <p class="fade-in">
+        Here is a more detailed introduction including background, philosophy,
+        etc.
+      </p>
+    </section>
+
+    <section id="work">
+      <h2 class="section-title fade-in">My Works</h2>
+      <div class="work-categories fade-in">
+        <!-- Art & Design (merged) -->
+        <div class="work-category" id="work-art-design">
+          <h3 class="work-subtitle">Art &amp; Design</h3>
+          <div class="work-rail">
+            <div class="rail-clip">
+              <div class="rail-track">
+              <a
+                class="item"
+                href="assets/art_and_design/d1.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d1.png"
+                  alt="Art &amp; Design work d1"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/d2.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d2.jpg"
+                  alt="Art &amp; Design work d2"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/d3.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d3.png"
+                  alt="Art &amp; Design work d3"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/d4.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d4.png"
+                  alt="Art &amp; Design work d4"
+                  decoding="async"
+                />
+              </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Photography -->
+        <div class="work-category" id="work-photo">
+          <h3 class="work-subtitle">Photography</h3>
+          <div class="work-rail">
+            <div class="rail-clip">
+              <div class="rail-track">
+              <div class="item">
+                <div class="placeholder">Add your photography works here</div>
+              </div>
+              <div class="item">
+                <div class="placeholder">Add your photography works here</div>
+              </div>
+              <div class="item">
+                <div class="placeholder">Add your photography works here</div>
+              </div>
+              <div class="item">
+                <div class="placeholder">Add your photography works here</div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <h2 class="section-title fade-in">Contact</h2>
+      <p class="fade-in">Email: shenbeizhang@gmail.com</p>
+        <ul class="fade-in" style="list-style:none; padding:0; margin-top:.5rem; display:flex; flex-direction:column; gap:.4rem;">
+          <li>
+            GitHub: 
+            <a href="https://github.com/zsbszzz" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:underline;">zsbszzz</a>
+          </li>
+          <li>
+            Instagram: 
+            <a href="https://instagram.com/zsbszzz" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:underline;">@zsbszzz</a>
+          </li>
+          <li>
+            小红书：
+            <a href="https://www.xiaohongshu.com/user/profile/62b70da8000000001902ba2d" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:underline;">神杯神杯</a>
+          </li>
+        </ul>
+    </section>
+
+    <script>
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add('show');
+              io.unobserve(e.target);
+            }
+          }
+        },
+        { threshold: 0.2 }
+      );
+      document.querySelectorAll('.fade-in').forEach((el) => io.observe(el));
+
+      // Top bar split animation: use "width" to derive target displacement, avoiding reliance on current position measurement, stable even with scaling/layout changes
+      const root = document.documentElement;
+      const topGroup = document.getElementById('top-group');
+      const avatarWrap = document.getElementById('avatar-wrap');
+      const avatar = document.getElementById('avatar');
+      const nav = document.querySelector('nav');
+
+      const state = { avatarShift: 0, navShift: 0, t: 0, scrollDistance: 320 };
+
+      function edgeGap() {
+        const val = getComputedStyle(root).getPropertyValue('--edge-gap');
+        const n = parseFloat(val);
+        return Number.isFinite(n) ? n : 24;
+      }
+
+      function computeShifts() {
+        const vw = window.innerWidth;
+        const gapEdge = edgeGap();
+        const g = getComputedStyle(topGroup);
+        const groupGap = parseFloat(g.columnGap || g.gap) || 0;
+
+        const avatarW = avatar.getBoundingClientRect().width;
+        const navW = nav.getBoundingClientRect().width;
+
+        const groupWidth = avatarW + groupGap + navW;
+        const centerLeft = vw / 2 - groupWidth / 2;
+
+        // Target: avatar left to left edge gapEdge; nav right to right edge gapEdge
+        const desiredAvatarLeft = gapEdge;
+        const desiredNavLeft = vw - gapEdge - navW;
+
+        state.avatarShift = desiredAvatarLeft - centerLeft;
+        state.navShift = desiredNavLeft - (centerLeft + avatarW + groupGap);
+
+        applyTransforms();
+      }
+
+      function applyTransforms() {
+        const t = state.t; // 0~1
+        // Translation only applies to the outer container, internal image scaling controlled by CSS
+        if (avatarWrap)
+          avatarWrap.style.transform = `translateX(${state.avatarShift * t}px)`;
+        nav.style.transform = `translateX(${state.navShift * t}px)`;
+        // Parent container remains horizontally centered (set in CSS)
+      }
+
+      let ticking = false;
+      let retractRAF = null; // Retract animation rAF handle
+      let programmaticScroll = false; // Flag: programmatic scroll to top
+
+      function onScroll() {
+        // During programmatic smooth scroll to top, do not override state.t with scrollY to avoid "scroll up then revert" feeling
+        if (programmaticScroll) {
+          if (window.scrollY === 0) programmaticScroll = false; // Restore normal after reaching top
+          if (!ticking) {
+            requestAnimationFrame(() => {
+              applyTransforms();
+              ticking = false;
+            });
+            ticking = true;
+          }
+          return;
+        }
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            state.t = Math.min(Math.max(window.scrollY / state.scrollDistance, 0), 1);
+            applyTransforms();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }
+
+      // Smooth scroll (directly handled in goTopAndRetract / nav links)
+
+      // Scroll to top and retract simultaneously (t → 0), both in parallel
+      function goTopAndRetract() {
+        const wasAtTop = window.scrollY === 0;
+        if (!wasAtTop) {
+          programmaticScroll = true;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Start retract animation
+        if (retractRAF) cancelAnimationFrame(retractRAF);
+        const from = state.t;
+        const to = 0;
+        const duration = 420;
+        const start = performance.now();
+        const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+        const step = (now) => {
+          const p = Math.min(1, (now - start) / duration);
+          state.t = from + (to - from) * easeOutCubic(p);
+          applyTransforms();
+          if (p < 1) {
+            retractRAF = requestAnimationFrame(step);
+          } else {
+            retractRAF = null;
+            // If we were already at top when clicked, ensure the flag is not left on
+            if (wasAtTop) programmaticScroll = false;
+          }
+        };
+        retractRAF = requestAnimationFrame(step);
+      }
+      window.goTopAndRetract = goTopAndRetract;
+
+      document.querySelectorAll('nav a[href^="#"]').forEach((a) => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.querySelector(a.getAttribute('href'));
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+
+      // Listen for size changes: window changes, font/content changes (ResizeObserver), more stable
+      const ro = new ResizeObserver(() => computeShifts());
+      ro.observe(nav);
+      if (avatarWrap) ro.observe(avatarWrap);
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', computeShifts);
+      window.addEventListener('orientationchange', computeShifts);
+
+      // Initial
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(computeShifts);
+      }
+      window.addEventListener('load', computeShifts);
+      computeShifts();
+
+      // Always start at top on refresh/back-forward navigation
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+      const resetToTop = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        state.t = 0;
+        applyTransforms();
+      };
+      window.addEventListener('pageshow', resetToTop);
+      window.addEventListener('load', resetToTop);
+
+      // ================== Jank-free Marquee for Work Rails ==================
+      (function initMarquees() {
+        const rails = Array.from(document.querySelectorAll('.work-rail'));
+        if (!rails.length) return;
+
+        const reduce =
+          window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const tracks = rails
+          .map((rail) => {
+            const el = rail.querySelector('.rail-track');
+            if (!el) return null;
+            // Duplicate one full set for seamless loop (do once)
+            if (!el.dataset.marqueeDoubled) {
+              const clones = Array.from(el.children).map((n) => n.cloneNode(true));
+              clones.forEach((n) => el.appendChild(n));
+              el.dataset.marqueeDoubled = '1';
+            }
+            return {
+              rail,
+              el,
+              x: 0,
+              half: 0,
+              duration: 20,
+              paused: false,
+              enabled: !reduce
+            };
+          })
+          .filter(Boolean);
+
+        function measure() {
+          tracks.forEach((t) => {
+            // After duplication, half equals one set width
+            t.half = t.el.scrollWidth / 2;
+          });
+        }
+        measure();
+
+        // Re-measure on resize/orientation and when images load
+        const onResize = () => measure();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+        document.querySelectorAll('.rail-track img').forEach((img) => {
+          if (!img.complete) img.addEventListener('load', measure, { once: true });
+        });
+
+        // Pause on hover and window blur
+        tracks.forEach((t) => {
+          t.rail.addEventListener('mouseenter', () => {
+            t.paused = true;
+          });
+          t.rail.addEventListener('mouseleave', () => {
+            t.paused = false;
+          });
+        });
+        window.addEventListener('blur', () => tracks.forEach((t) => (t.paused = true)));
+        window.addEventListener('focus', () => tracks.forEach((t) => (t.paused = false)));
+
+        if (!tracks.some((t) => t.enabled)) return; // reduced-motion: all disabled
+
+        let last = performance.now();
+        function tick(now) {
+          const dt = Math.min(0.05, (now - last) / 1000); // cap delta to avoid jumps
+          last = now;
+          for (const t of tracks) {
+            if (!t.enabled || t.paused || !t.half) continue;
+            const pxPerSec = t.half / t.duration; // one set per duration seconds
+            t.x -= pxPerSec * dt;
+            if (t.x <= -t.half) t.x += t.half;
+            t.el.style.transform = `translate3d(${t.x}px,0,0)`;
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
+    </script>
+  </body>
+</html>
