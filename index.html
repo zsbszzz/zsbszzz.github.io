@@ -5,206 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Zhang Shenbei</title>
 
-    <style>
-      /* ================== Root Variables ================== */
-      :root {
-        --radius: 18px;
-        --edge-gap: 24px;
-      }
-
-      /* ================== Base Reset ================== */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        overflow-x: hidden;
-      }
-
-      /* ================== Section Layout ================== */
-      header,
-      section {
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 8vh 8vw;
-      }
-      header {
-        background: #3cb3db;
-      }
-      #about {
-        background: #ffb2a4;
-      }
-      #work {
-        background: #ffe066;
-      }
-      #contact {
-        background: #9ad3bc;
-      }
-
-      #work {
-        height: auto;
-        min-height: 100vh;
-      }
-
-      /* ================== Fixed Top Group ================== */
-      #top-group {
-        position: fixed;
-        top: 1.2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        z-index: 20;
-      }
-
-      /* ================== Avatar ================== */
-      #avatar-wrap {
-        display: inline-block;
-      }
-
-      #avatar {
-        width: 60px;
-        height: 60px;
-        object-fit: cover;
-        border-radius: 9px;
-        cursor: pointer;
-        transition: transform 0.28s cubic-bezier(0.25, 0.6, 0.3, 1);
-        will-change: transform;
-      }
-
-      /* 悬停只改变图片的 scale，不影响外层容器的 translateX */
-      #avatar:hover {
-        transform: scale(1.15);
-      }
-
-      /* ================== Navigation ================== */
-      nav {
-        display: flex;
-        gap: 1rem;
-        padding: 0.6rem 1rem;
-        background: transparent;
-        border: 9px dotted #fff;
-        border-radius: var(--radius);
-      }
-      nav a {
-        position: relative;
-        display: inline-block;
-        padding: 0.6rem 1.2rem;
-        color: #fff;
-        text-decoration: none;
-        font-weight: 600;
-        border-radius: 9px;
-        overflow: hidden;
-        transition: transform 0.3s ease;  
-      }
-      nav a:hover {
-        transform: scale(1.08);
-      }
-      nav a::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: #fff;
-        opacity: 0.15;
-        transform: translateY(100%);
-        transition: transform 0.45s ease;
-      }
-      nav a:hover::before {
-        transform: translateY(0);
-      }
-
-      /* ================== Typography ================== */
-      h1 {
-        font-size: clamp(2.5rem, 5vw, 4rem);
-        color: #fff;
-        font-weight: 700;
-      }
-      .section-title {
-        font-size: clamp(1.6rem, 3.5vw, 2.6rem);
-        margin-bottom: 2rem;
-      }
-
-      /* ================== Work Categories ================== */
-      .work-categories {
-        display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
-      }
-      .work-category .work-subtitle {
-        font-size: 1.15rem;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        margin: 0 0 0.5rem;
-      }
-
-      /* ================== Horizontal Work Rails (loop) ================== */
-      .work-rail {
-        position: relative;
-        overflow: hidden;
-        border-radius: var(--radius);
-        background: transparent;
-        border: 12px dotted #fff;
-        padding: 0.8rem 1rem; /* 增加左右内边距，留出更舒适距离 */
-        width: min(100%, 64vw);
-        margin-inline: 0;
-        isolation: isolate;
-      }
-      /* 内部倒角裁剪，避免内容贴着外框的直角区域 */
-      .rail-clip {
-        border-radius: calc(var(--radius) - 6px);
-        overflow: hidden;
-      }
-      .rail-track {
-        display: flex;
-        gap: 0.8rem;
-        width: max-content;
-        animation: none;
-        will-change: transform;
-        transform: translate3d(0, 0, 0);
-        backface-visibility: hidden;
-      }
-
-      .rail-track .item {
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .rail-track .item img {
-          height: 32vh;
-          max-height: 500px;
-        width: auto;
-        object-fit: contain;
-        display: block;
-        border-radius: calc(var(--radius) - 6px);
-      }
-      .rail-track .placeholder {
-        width: clamp(200px, 45vw, 520px);
-          height: 34vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius);
-        background: #f5f5f7;
-        color: #666;
-      }
-
-      /* ================== Fade-In Animation ================== */
-      .fade-in {
-        opacity: 0;
-        transform: translateY(25px);
-        transition: 0.6s ease;
-      }
-      .fade-in.show {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    </style>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <!-- top bar -->
@@ -246,15 +47,63 @@
               <div class="rail-track">
               <a
                 class="item"
-                href="assets/art_and_design/d1.png"
+                href="assets/art_and_design/a1.jpg"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="assets/art_and_design/d1.png"
-                  alt="Art &amp; Design work d1"
+                    src="assets/art_and_design/a1.jpg"
+                    alt="Art &amp; Design work a1"
                   decoding="async"
                   fetchpriority="high"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/a2.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/a2.jpg"
+                  alt="Art &amp; Design work a2"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/a3.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/a3.jpg"
+                  alt="Art &amp; Design work a3"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/a4.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/a4.jpg"
+                  alt="Art &amp; Design work a4"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/d1.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d1.jpg"
+                  alt="Art &amp; Design work d1"
+                  decoding="async"
                 />
               </a>
               <a
@@ -271,25 +120,37 @@
               </a>
               <a
                 class="item"
-                href="assets/art_and_design/d3.png"
+                href="assets/art_and_design/d3.jpg"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="assets/art_and_design/d3.png"
+                  src="assets/art_and_design/d3.jpg"
                   alt="Art &amp; Design work d3"
                   decoding="async"
                 />
               </a>
               <a
                 class="item"
-                href="assets/art_and_design/d4.png"
+                href="assets/art_and_design/d4.jpg"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="assets/art_and_design/d4.png"
+                  src="assets/art_and_design/d4.jpg"
                   alt="Art &amp; Design work d4"
+                  decoding="async"
+                />
+              </a>
+              <a
+                class="item"
+                href="assets/art_and_design/d5.jpg"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="assets/art_and_design/d5.jpg"
+                  alt="Art &amp; Design work d5"
                   decoding="async"
                 />
               </a>
@@ -304,18 +165,24 @@
           <div class="work-rail">
             <div class="rail-clip">
               <div class="rail-track">
-              <div class="item">
-                <div class="placeholder">Add your photography works here</div>
-              </div>
-              <div class="item">
-                <div class="placeholder">Add your photography works here</div>
-              </div>
-              <div class="item">
-                <div class="placeholder">Add your photography works here</div>
-              </div>
-              <div class="item">
-                <div class="placeholder">Add your photography works here</div>
-              </div>
+              <a class="item" href="assets/photography/p1.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p1.jpg" alt="Photography p1" decoding="async" fetchpriority="high" />
+              </a>
+              <a class="item" href="assets/photography/p2.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p2.jpg" alt="Photography p2" decoding="async" />
+              </a>
+              <a class="item" href="assets/photography/p3.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p3.jpg" alt="Photography p3" decoding="async" />
+              </a>
+              <a class="item" href="assets/photography/p4.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p4.jpg" alt="Photography p4" decoding="async" />
+              </a>
+              <a class="item" href="assets/photography/p5.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p5.jpg" alt="Photography p5" decoding="async" />
+              </a>
+              <a class="item" href="assets/photography/p6.jpg" target="_blank" rel="noopener">
+                <img src="assets/photography/p6.jpg" alt="Photography p6" decoding="async" />
+              </a>
               </div>
             </div>
           </div>
