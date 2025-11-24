@@ -144,6 +144,8 @@
   <script>
 (function(){
   'use strict';
+  // Duration & config constants
+  const DUR = { retract: 420, clickNav: 520, clickAvatar: 260 };
   // Fade-In Intersection
   const io = new IntersectionObserver(entries => {
     for (const e of entries) {
@@ -185,11 +187,11 @@
   function applyTransforms() {
     const t = state.t;
     if (window.matchMedia('(max-width: 1360px)').matches) {
-      if (avatarWrap) avatarWrap.style.transform = 'translateX(0)';
+      avatarWrap.style.transform = 'translateX(0)';
       nav.style.transform = 'translateX(0)';
       return;
     }
-    if (avatarWrap) avatarWrap.style.transform = `translateX(${state.avatarShift * t}px)`;
+    avatarWrap.style.transform = `translateX(${state.avatarShift * t}px)`;
     nav.style.transform = `translateX(${state.navShift * t}px)`;
   }
   let ticking = false, retractRAF = null, programmaticScroll = false;
@@ -224,10 +226,12 @@
       programmaticScroll = true;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    avatar.classList.add('clicked');
+    setTimeout(() => avatar.classList.remove('clicked'), DUR.clickAvatar);
     if (retractRAF) cancelAnimationFrame(retractRAF);
     const from = state.t;
     const to = 0;
-    const duration = 420;
+    const duration = DUR.retract;
     const start = performance.now();
     const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
     const step = now => {
@@ -249,6 +253,9 @@
       e.preventDefault();
       const target = document.querySelector(a.getAttribute('href'));
       if (target) target.scrollIntoView({ behavior: 'smooth' });
+      // Nav link click visual feedback
+      a.classList.add('clicked');
+      setTimeout(() => a.classList.remove('clicked'), DUR.clickNav);
       if (isMobileActive()) topGroup.classList.add('collapsed');
     });
   });
@@ -283,7 +290,6 @@
   }
   window.addEventListener('resize', () => { if (!isMobileActive()) topGroup.classList.remove('collapsed'); });
 
-  // Marquee
   (function initMarquees() {
     const rails = Array.from(document.querySelectorAll('.work-rail')); if (!rails.length) return;
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
