@@ -13,7 +13,7 @@
       <img id="avatar" src="assets/img/avatar.png" alt="Profile avatar" decoding="async" loading="eager" />
     </div>
     <nav aria-label="Primary">
-      <a href="#about">About Me</a>
+      <a href="#about">About</a>
       <a href="#work">Works</a>
       <a href="#contact">Contact</a>
     </nav>
@@ -142,7 +142,6 @@
   </main>
 
   <script>
-/* Main site script (re-inlined per request) */
 (function(){
   'use strict';
   // Fade-In Intersection
@@ -185,6 +184,11 @@
   }
   function applyTransforms() {
     const t = state.t;
+    if (window.matchMedia('(max-width: 1360px)').matches) {
+      if (avatarWrap) avatarWrap.style.transform = 'translateX(0)';
+      nav.style.transform = 'translateX(0)';
+      return;
+    }
     if (avatarWrap) avatarWrap.style.transform = `translateX(${state.avatarShift * t}px)`;
     nav.style.transform = `translateX(${state.navShift * t}px)`;
   }
@@ -196,6 +200,7 @@
         requestAnimationFrame(() => {
           applyTransforms();
           updateBackgroundByScroll();
+          handleMobileCollapse(window.scrollY);
           ticking = false;
         });
         ticking = true;
@@ -207,6 +212,7 @@
         state.t = Math.min(Math.max(window.scrollY / state.scrollDistance, 0), 1);
         applyTransforms();
         updateBackgroundByScroll();
+        handleMobileCollapse(window.scrollY);
         ticking = false;
       });
       ticking = true;
@@ -243,6 +249,7 @@
       e.preventDefault();
       const target = document.querySelector(a.getAttribute('href'));
       if (target) target.scrollIntoView({ behavior: 'smooth' });
+      if (isMobileActive()) topGroup.classList.add('collapsed');
     });
   });
   const ro = new ResizeObserver(() => computeShifts()); ro.observe(nav); if (avatarWrap) ro.observe(avatarWrap);
@@ -257,6 +264,24 @@
     updateBackgroundByScroll();
   };
   window.addEventListener('pageshow', resetToTop); window.addEventListener('load', resetToTop);
+
+  // Mobile collapse (scroll direction) logic
+  let lastY = window.scrollY;
+  function isMobileActive(){ return window.matchMedia('(max-width: 1360px)').matches; }
+  function handleMobileCollapse(y){
+    if (!isMobileActive()) { topGroup.classList.remove('collapsed'); lastY = y; return; }
+    const dy = y - lastY;
+    const atTop = y <= 0;
+    if (atTop) {
+      topGroup.classList.remove('collapsed');
+    } else if (dy > 8 && y > 50) {
+      topGroup.classList.add('collapsed');
+    } else if (dy < -12) {
+      topGroup.classList.remove('collapsed');
+    }
+    lastY = y;
+  }
+  window.addEventListener('resize', () => { if (!isMobileActive()) topGroup.classList.remove('collapsed'); });
 
   // Marquee
   (function initMarquees() {
@@ -276,7 +301,7 @@
     measure();
     const onResize = () => measure(); window.addEventListener('resize', onResize); window.addEventListener('orientationchange', onResize);
     document.querySelectorAll('.rail-track img').forEach(img => { if (!img.complete) img.addEventListener('load', measure, { once:true }); });
-    // 悬停时减速而非暂停: 调整速度倍率
+    
     tracks.forEach(t => {
       t.rail.addEventListener('mouseenter', () => { t.speedMultiplier = 0.25; });
       t.rail.addEventListener('mouseleave', () => { t.speedMultiplier = 1; });
