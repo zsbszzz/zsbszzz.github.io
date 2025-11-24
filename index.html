@@ -146,6 +146,8 @@
   'use strict';
   // Duration & config constants
   const DUR = { retract: 420, clickNav: 520, clickAvatar: 260 };
+  // Mobile collapse thresholds (lowered)
+  const MOBILE_THRESHOLDS = { downDy: 4, upDy: -6, minY: 30 };
   // Fade-In Intersection
   const io = new IntersectionObserver(entries => {
     for (const e of entries) {
@@ -195,6 +197,7 @@
     nav.style.transform = `translateX(${state.navShift * t}px)`;
   }
   let ticking = false, retractRAF = null, programmaticScroll = false;
+  let navProgrammatic = false;
   function onScroll() {
     if (programmaticScroll) {
       if (window.scrollY === 0) programmaticScroll = false;
@@ -252,8 +255,11 @@
     a.addEventListener('click', e => {
       e.preventDefault();
       const target = document.querySelector(a.getAttribute('href'));
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-      // Nav link click visual feedback
+      if (target) {
+        navProgrammatic = true;
+        target.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => { navProgrammatic = false; }, 800);
+      }
       a.classList.add('clicked');
       setTimeout(() => a.classList.remove('clicked'), DUR.clickNav);
       if (isMobileActive()) topGroup.classList.add('collapsed');
@@ -277,13 +283,14 @@
   function isMobileActive(){ return window.matchMedia('(max-width: 1360px)').matches; }
   function handleMobileCollapse(y){
     if (!isMobileActive()) { topGroup.classList.remove('collapsed'); lastY = y; return; }
+    if (navProgrammatic) { topGroup.classList.add('collapsed'); lastY = y; return; }
     const dy = y - lastY;
     const atTop = y <= 0;
     if (atTop) {
       topGroup.classList.remove('collapsed');
-    } else if (dy > 8 && y > 50) {
+    } else if (dy > MOBILE_THRESHOLDS.downDy && y > MOBILE_THRESHOLDS.minY) {
       topGroup.classList.add('collapsed');
-    } else if (dy < -12) {
+    } else if (dy < MOBILE_THRESHOLDS.upDy) {
       topGroup.classList.remove('collapsed');
     }
     lastY = y;
