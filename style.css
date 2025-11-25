@@ -39,7 +39,7 @@ section {
     z-index: 20;
 }
 
-#avatar-wrap { display: inline-block; }
+#avatar-wrap { display: flex; align-items: center; }
 #avatar {
     border-radius: 9px;
     cursor: pointer;
@@ -187,13 +187,10 @@ h1 {
 @media (max-width: 1360px) {
     header, section { padding: 7vh 7vw; }
     .work-rail { width: 100%; }
-    nav { gap: .6rem; }
-    nav a { padding: .5rem .9rem; }
     .rail-track .item img { height: 28vh; }
     #top-group { transition: transform .35s ease; }
     #top-group.collapsed { transform: translate(-50%, -140%); }
-    #avatar { width:48px; height:48px; }
-    nav { padding:.45rem .7rem; }
+    #avatar { width: 55px; height: 55px; }
 }
 @media (max-width: 900px) {
     #top-group { top: .8rem; }
