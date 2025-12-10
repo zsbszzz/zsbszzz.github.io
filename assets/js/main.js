@@ -16,6 +16,7 @@
 
   const edgeGap = () => parseFloat(getComputedStyle(root).getPropertyValue('--edge-gap')) || 24;
   const isMobile = () => matchMedia('(max-width: 1360px)').matches;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => {
@@ -208,7 +209,8 @@
         const svgDoc = obj.contentDocument;
         if (!svgDoc) return;
 
-        const CONFIG = { maxMoveX: 120, maxMoveY: 80, outerRadius: 80, fillRadius: 34 };
+        const CONFIG = { maxMoveX: 120, maxMoveY: 80, smoothing: 0.08 };
+        const GYRO = { minBeta: 30, maxBeta: 110, baseBeta: 70, sensitivity: 30 };
         const centers = { left: { x: 240, y: 87 }, right: { x: 1146, y: 87 } };
         const els = {
           ringL: svgDoc.getElementById('ring-left'),
@@ -219,48 +221,64 @@
 
         if (!els.ringL || !els.ringR || !els.pupilL || !els.pupilR) return;
 
-        [els.ringL, els.ringR].forEach(el => el.setAttribute('r', CONFIG.outerRadius));
-        [els.pupilL, els.pupilR].forEach(el => el.setAttribute('r', CONFIG.fillRadius));
+        let curX = 0, curY = 0, tarX = 0, tarY = 0;
+        let lastGamma = null, smoothGamma = 0, smoothBeta = GYRO.baseBeta;
+        let animating = false;
+
+        const render = () => {
+          curX += (tarX - curX) * CONFIG.smoothing;
+          curY += (tarY - curY) * CONFIG.smoothing;
+          [['ringL', 'pupilL', 'left'], ['ringR', 'pupilR', 'right']].forEach(([r, p, s]) => {
+            els[r].setAttribute('cx', centers[s].x + curX);
+            els[r].setAttribute('cy', centers[s].y + curY);
+            els[p].setAttribute('cx', centers[s].x + curX);
+            els[p].setAttribute('cy', centers[s].y + curY);
+          });
+          if (Math.abs(tarX - curX) > 0.3 || Math.abs(tarY - curY) > 0.3) requestAnimationFrame(render);
+          else animating = false;
+        };
 
         const update = (dx, dy) => {
-          [['ringL', 'pupilL', 'left'], ['ringR', 'pupilR', 'right']].forEach(([r, p, side]) => {
-            els[r].setAttribute('cx', centers[side].x + dx);
-            els[r].setAttribute('cy', centers[side].y + dy);
-            els[p].setAttribute('cx', centers[side].x + dx);
-            els[p].setAttribute('cy', centers[side].y + dy);
-          });
+          tarX = dx; tarY = dy;
+          if (!animating) { animating = true; requestAnimationFrame(render); }
         };
 
-        const updateFromMouse = (x, y) => {
-          const dx = (x / innerWidth - 0.5) * 2 * CONFIG.maxMoveX;
-          const dy = (y / innerHeight - 0.5) * 2 * CONFIG.maxMoveY;
-          update(dx, dy);
-        };
-
-        const updateFromGyro = (gamma, beta) => {
-          const dx = Math.max(-1, Math.min(1, gamma / 30)) * CONFIG.maxMoveX;
-          const dy = Math.max(-1, Math.min(1, (beta - 45) / 30)) * CONFIG.maxMoveY;
-          update(dx, dy);
-        };
-
-        document.addEventListener('mousemove', e => updateFromMouse(e.clientX, e.clientY), { passive: true });
-
-        if ('DeviceOrientationEvent' in window) {
-          const requestPermission = DeviceOrientationEvent.requestPermission;
+        if (isTouchDevice && 'DeviceOrientationEvent' in window) {
           const startGyro = () => {
             addEventListener('deviceorientation', e => {
-              if (e.gamma !== null && e.beta !== null) updateFromGyro(e.gamma, e.beta);
+              if (e.gamma === null || e.beta === null) return;
+
+              if (lastGamma !== null && Math.abs(e.gamma - lastGamma) > 70) {
+                lastGamma = e.gamma;
+                return;
+              }
+              lastGamma = e.gamma;
+
+              smoothGamma += (e.gamma - smoothGamma) * 0.15;
+              smoothBeta += (e.beta - smoothBeta) * 0.15;
+
+              const dx = Math.max(-1, Math.min(1, smoothGamma / GYRO.sensitivity)) * CONFIG.maxMoveX;
+              const dy = (smoothBeta >= GYRO.minBeta && smoothBeta <= GYRO.maxBeta)
+                ? Math.max(-1, Math.min(1, (smoothBeta - GYRO.baseBeta) / GYRO.sensitivity)) * CONFIG.maxMoveY
+                : (smoothBeta < GYRO.minBeta ? -CONFIG.maxMoveY : CONFIG.maxMoveY);
+
+              update(dx, dy);
             }, { passive: true });
           };
 
-          if (typeof requestPermission === 'function') {
+          const rp = DeviceOrientationEvent.requestPermission;
+          if (typeof rp === 'function') {
             document.body.addEventListener('click', function once() {
-              requestPermission().then(state => { if (state === 'granted') startGyro(); });
+              rp().then(s => { if (s === 'granted') startGyro(); });
               document.body.removeEventListener('click', once);
             });
-          } else {
-            startGyro();
-          }
+          } else startGyro();
+        } else {
+          document.addEventListener('mousemove', e => {
+            const dx = (e.clientX / innerWidth - 0.5) * 2 * CONFIG.maxMoveX;
+            const dy = (e.clientY / innerHeight - 0.5) * 2 * CONFIG.maxMoveY;
+            update(dx, dy);
+          }, { passive: true });
         }
       } catch (e) {}
     });
