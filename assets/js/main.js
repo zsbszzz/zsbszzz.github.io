@@ -16,21 +16,17 @@
 
   const edgeGap = () => parseFloat(getComputedStyle(root).getPropertyValue('--edge-gap')) || 24;
   const isMobile = () => matchMedia('(max-width: 1360px)').matches;
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isPhone = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && Math.min(screen.width, screen.height) < 768;
 
   const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); }
-    });
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); } });
   }, { threshold: 0.2 });
   $$('.fade-in, .fade-in-eyes').forEach(el => io.observe(el));
 
   function computeShifts() {
-    const vw = innerWidth, gapEdge = edgeGap();
-    const g = getComputedStyle(topGroup);
+    const vw = innerWidth, gapEdge = edgeGap(), g = getComputedStyle(topGroup);
     const groupGap = parseFloat(g.columnGap || g.gap) || 0;
-    const avatarW = avatar.getBoundingClientRect().width;
-    const navW = nav.getBoundingClientRect().width;
+    const avatarW = avatar.getBoundingClientRect().width, navW = nav.getBoundingClientRect().width;
     const centerLeft = vw / 2 - (avatarW + groupGap + navW) / 2;
     state.avatarShift = gapEdge - centerLeft;
     state.navShift = vw - gapEdge - navW - (centerLeft + avatarW + groupGap);
@@ -126,7 +122,7 @@
         [...el.children].forEach(n => el.appendChild(n.cloneNode(true)));
         el.dataset.marqueeDoubled = '1';
       }
-      return { rail, el, x: 0, half: 0, duration: 20, paused: false, enabled: !reduce, speedMultiplier: 1 };
+      return { rail, el, x: 0, half: 0, duration: 20, paused: false, enabled: !reduce, speed: 1 };
     }).filter(Boolean);
 
     const measure = () => tracks.forEach(t => t.half = t.el.scrollWidth / 2);
@@ -135,8 +131,8 @@
     addEventListener('orientationchange', measure);
     $$('.rail-track img').forEach(img => { if (!img.complete) img.addEventListener('load', measure, { once: true }); });
     tracks.forEach(t => {
-      t.rail.addEventListener('mouseenter', () => t.speedMultiplier = 0.25);
-      t.rail.addEventListener('mouseleave', () => t.speedMultiplier = 1);
+      t.rail.addEventListener('mouseenter', () => t.speed = 0.25);
+      t.rail.addEventListener('mouseleave', () => t.speed = 1);
     });
     addEventListener('blur', () => tracks.forEach(t => t.paused = true));
     addEventListener('focus', () => tracks.forEach(t => t.paused = false));
@@ -148,7 +144,7 @@
       last = now;
       tracks.forEach(t => {
         if (!t.enabled || t.paused || !t.half) return;
-        t.x -= (t.half / t.duration) * t.speedMultiplier * dt;
+        t.x -= (t.half / t.duration) * t.speed * dt;
         if (t.x <= -t.half) t.x += t.half;
         t.el.style.transform = `translate3d(${t.x}px,0,0)`;
       });
@@ -203,66 +199,41 @@
   (function () {
     const obj = $('#eyes-object');
     if (!obj) return;
-
     obj.addEventListener('load', () => {
       try {
         const svgDoc = obj.contentDocument;
         if (!svgDoc) return;
 
-        const CONFIG = { maxMoveX: 120, maxMoveY: 80, smoothing: 0.08 };
-        const GYRO = { minBeta: 30, maxBeta: 110, baseBeta: 70, sensitivity: 30 };
+        const CONFIG = {
+          maxMoveX: 120,       // 眼球最大水平移动距离
+          maxMoveY: 100,        // 眼球最大垂直移动距离
+          sensitivity: 30,     // 灵敏度 (越小越灵敏)
+          baseBeta: 55,        // beta 基准角度 (正常手持约 45~65)
+        };
+
         const centers = { left: { x: 240, y: 87 }, right: { x: 1146, y: 87 } };
-        const els = {
-          ringL: svgDoc.getElementById('ring-left'),
-          ringR: svgDoc.getElementById('ring-right'),
-          pupilL: svgDoc.getElementById('pupil-left'),
-          pupilR: svgDoc.getElementById('pupil-right')
+        const ringL = svgDoc.getElementById('ring-left');
+        const ringR = svgDoc.getElementById('ring-right');
+        const pupilL = svgDoc.getElementById('pupil-left');
+        const pupilR = svgDoc.getElementById('pupil-right');
+        if (!ringL || !ringR || !pupilL || !pupilR) return;
+
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+        const setEyes = (dx, dy) => {
+          dx = clamp(dx, -CONFIG.maxMoveX, CONFIG.maxMoveX);
+          dy = clamp(dy, -CONFIG.maxMoveY, CONFIG.maxMoveY);
+          [ringL, pupilL].forEach(el => { el.setAttribute('cx', centers.left.x + dx); el.setAttribute('cy', centers.left.y + dy); });
+          [ringR, pupilR].forEach(el => { el.setAttribute('cx', centers.right.x + dx); el.setAttribute('cy', centers.right.y + dy); });
         };
 
-        if (!els.ringL || !els.ringR || !els.pupilL || !els.pupilR) return;
-
-        let curX = 0, curY = 0, tarX = 0, tarY = 0;
-        let lastGamma = null, smoothGamma = 0, smoothBeta = GYRO.baseBeta;
-        let animating = false;
-
-        const render = () => {
-          curX += (tarX - curX) * CONFIG.smoothing;
-          curY += (tarY - curY) * CONFIG.smoothing;
-          [['ringL', 'pupilL', 'left'], ['ringR', 'pupilR', 'right']].forEach(([r, p, s]) => {
-            els[r].setAttribute('cx', centers[s].x + curX);
-            els[r].setAttribute('cy', centers[s].y + curY);
-            els[p].setAttribute('cx', centers[s].x + curX);
-            els[p].setAttribute('cy', centers[s].y + curY);
-          });
-          if (Math.abs(tarX - curX) > 0.3 || Math.abs(tarY - curY) > 0.3) requestAnimationFrame(render);
-          else animating = false;
-        };
-
-        const update = (dx, dy) => {
-          tarX = dx; tarY = dy;
-          if (!animating) { animating = true; requestAnimationFrame(render); }
-        };
-
-        if (isTouchDevice && 'DeviceOrientationEvent' in window) {
+        if (isPhone && 'DeviceOrientationEvent' in window) {
           const startGyro = () => {
             addEventListener('deviceorientation', e => {
               if (e.gamma === null || e.beta === null) return;
-
-              if (lastGamma !== null && Math.abs(e.gamma - lastGamma) > 70) {
-                lastGamma = e.gamma;
-                return;
-              }
-              lastGamma = e.gamma;
-
-              smoothGamma += (e.gamma - smoothGamma) * 0.15;
-              smoothBeta += (e.beta - smoothBeta) * 0.15;
-
-              const dx = Math.max(-1, Math.min(1, smoothGamma / GYRO.sensitivity)) * CONFIG.maxMoveX;
-              const dy = (smoothBeta >= GYRO.minBeta && smoothBeta <= GYRO.maxBeta)
-                ? Math.max(-1, Math.min(1, (smoothBeta - GYRO.baseBeta) / GYRO.sensitivity)) * CONFIG.maxMoveY
-                : (smoothBeta < GYRO.minBeta ? -CONFIG.maxMoveY : CONFIG.maxMoveY);
-
-              update(dx, dy);
+              const dx = (e.gamma / CONFIG.sensitivity) * CONFIG.maxMoveX;
+              const dy = ((e.beta - CONFIG.baseBeta) / CONFIG.sensitivity) * CONFIG.maxMoveY;
+              setEyes(dx, dy);
             }, { passive: true });
           };
 
@@ -275,12 +246,10 @@
           } else startGyro();
         } else {
           document.addEventListener('mousemove', e => {
-            const dx = (e.clientX / innerWidth - 0.5) * 2 * CONFIG.maxMoveX;
-            const dy = (e.clientY / innerHeight - 0.5) * 2 * CONFIG.maxMoveY;
-            update(dx, dy);
+            setEyes((e.clientX / innerWidth - 0.5) * 2 * CONFIG.maxMoveX, (e.clientY / innerHeight - 0.5) * 2 * CONFIG.maxMoveY);
           }, { passive: true });
         }
-      } catch (e) {}
+      } catch (e) { }
     });
   })();
 })();
