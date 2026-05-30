@@ -16,7 +16,6 @@
 
   const edgeGap = () => parseFloat(getComputedStyle(root).getPropertyValue('--edge-gap')) || 24;
   const isMobile = () => matchMedia('(max-width: 1360px)').matches;
-  const isPhone = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && Math.min(screen.width, screen.height) < 768;
 
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); } });
@@ -199,57 +198,77 @@
   (function () {
     const obj = $('#eyes-object');
     if (!obj) return;
-    obj.addEventListener('load', () => {
-      try {
-        const svgDoc = obj.contentDocument;
-        if (!svgDoc) return;
 
-        const CONFIG = {
-          maxMoveX: 120,       // 眼球最大水平移动距离
-          maxMoveY: 100,        // 眼球最大垂直移动距离
-          sensitivity: 30,     // 灵敏度 (越小越灵敏)
-          baseBeta: 55,        // beta 基准角度 (正常手持约 45~65)
+    function init() {
+      let svgDoc;
+      try { svgDoc = obj.contentDocument; } catch (e) { return; }
+      if (!svgDoc) return;
+
+      const ringL = svgDoc.getElementById('ring-left');
+      const ringR = svgDoc.getElementById('ring-right');
+      const pupilL = svgDoc.getElementById('pupil-left');
+      const pupilR = svgDoc.getElementById('pupil-right');
+      if (!ringL || !ringR || !pupilL || !pupilR) return;
+
+      const MAX_X = 120;       // 眼球最大水平偏移 (SVG 用户单位)
+      const MAX_Y = 100;       // 眼球最大垂直偏移
+      const TILT_RANGE = 30;   // 相对中立姿态倾斜多少度到达最大偏移
+      const centers = { left: { x: 240, y: 87 }, right: { x: 1146, y: 87 } };
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+      // 目标 / 当前归一化偏移 (-1 ~ 1)，用 rAF 缓动让跟随更顺滑
+      let tx = 0, ty = 0, cx = 0, cy = 0, running = false;
+      const setTarget = (nx, ny) => {
+        tx = clamp(nx, -1, 1);
+        ty = clamp(ny, -1, 1);
+        if (!running) { running = true; requestAnimationFrame(loop); }
+      };
+      function loop() {
+        cx += (tx - cx) * 0.15;
+        cy += (ty - cy) * 0.15;
+        const dx = cx * MAX_X, dy = cy * MAX_Y;
+        [ringL, pupilL].forEach(el => { el.setAttribute('cx', centers.left.x + dx); el.setAttribute('cy', centers.left.y + dy); });
+        [ringR, pupilR].forEach(el => { el.setAttribute('cx', centers.right.x + dx); el.setAttribute('cy', centers.right.y + dy); });
+        if (Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001) requestAnimationFrame(loop);
+        else running = false;
+      }
+
+      // 鼠标跟随（有指针的设备）——陀螺仪一旦收到数据就让位
+      let gyroActive = false;
+      addEventListener('mousemove', e => {
+        if (gyroActive) return;
+        setTarget((e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2);
+      }, { passive: true });
+
+      // 重力 / 陀螺仪跟随（移动端）——用特性检测，不再依赖屏幕尺寸判断
+      if ('DeviceOrientationEvent' in window) {
+        let beta0 = null, gamma0 = null;   // 以首次读数为中立点
+        const onOrient = e => {
+          if (e.beta === null || e.gamma === null) return;
+          gyroActive = true;
+          if (beta0 === null) { beta0 = e.beta; gamma0 = e.gamma; }
+          const g = e.gamma - gamma0, b = e.beta - beta0;
+          const landscape = Math.abs(window.orientation) === 90;  // 横屏时两轴对调
+          setTarget((landscape ? b : g) / TILT_RANGE, (landscape ? g : b) / TILT_RANGE);
         };
+        const start = () => addEventListener('deviceorientation', onOrient, { passive: true });
 
-        const centers = { left: { x: 240, y: 87 }, right: { x: 1146, y: 87 } };
-        const ringL = svgDoc.getElementById('ring-left');
-        const ringR = svgDoc.getElementById('ring-right');
-        const pupilL = svgDoc.getElementById('pupil-left');
-        const pupilR = svgDoc.getElementById('pupil-right');
-        if (!ringL || !ringR || !pupilL || !pupilR) return;
-
-        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-        const setEyes = (dx, dy) => {
-          dx = clamp(dx, -CONFIG.maxMoveX, CONFIG.maxMoveX);
-          dy = clamp(dy, -CONFIG.maxMoveY, CONFIG.maxMoveY);
-          [ringL, pupilL].forEach(el => { el.setAttribute('cx', centers.left.x + dx); el.setAttribute('cy', centers.left.y + dy); });
-          [ringR, pupilR].forEach(el => { el.setAttribute('cx', centers.right.x + dx); el.setAttribute('cy', centers.right.y + dy); });
-        };
-
-        if (isPhone && 'DeviceOrientationEvent' in window) {
-          const startGyro = () => {
-            addEventListener('deviceorientation', e => {
-              if (e.gamma === null || e.beta === null) return;
-              const dx = (e.gamma / CONFIG.sensitivity) * CONFIG.maxMoveX;
-              const dy = ((e.beta - CONFIG.baseBeta) / CONFIG.sensitivity) * CONFIG.maxMoveY;
-              setEyes(dx, dy);
-            }, { passive: true });
-          };
-
-          const rp = DeviceOrientationEvent.requestPermission;
-          if (typeof rp === 'function') {
-            document.body.addEventListener('click', function once() {
-              rp().then(s => { if (s === 'granted') startGyro(); });
-              document.body.removeEventListener('click', once);
-            });
-          } else startGyro();
+        const rp = window.DeviceOrientationEvent.requestPermission;
+        if (typeof rp === 'function') {
+          // iOS 13+：权限须在用户手势中申请，未授权时下次交互再试
+          const ask = () => rp().then(s => {
+            if (s === 'granted') { start(); removeEventListener('click', ask); removeEventListener('touchend', ask); }
+          }).catch(() => {});
+          addEventListener('click', ask);
+          addEventListener('touchend', ask);
         } else {
-          document.addEventListener('mousemove', e => {
-            setEyes((e.clientX / innerWidth - 0.5) * 2 * CONFIG.maxMoveX, (e.clientY / innerHeight - 0.5) * 2 * CONFIG.maxMoveY);
-          }, { passive: true });
+          start();   // Android 等：直接监听
         }
-      } catch (e) { }
-    });
+      }
+    }
+
+    // <object> 可能在脚本运行前就已加载完成
+    if (obj.contentDocument && obj.contentDocument.getElementById('ring-left')) init();
+    obj.addEventListener('load', init);
   })();
 })();
