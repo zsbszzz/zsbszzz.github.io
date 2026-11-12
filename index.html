@@ -6,6 +6,7 @@
   <meta name="description" content="Zhang Shenbei personal page: art & design, photography, contact information.">
   <title>Zhang Shenbei</title>
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/selected-works.css">
 </head>
 <body>
   <div id="top-group">
@@ -19,12 +20,12 @@
     </nav>
   </div>
 
-  <header data-bg="#62b7e6">
+  <header data-bg="#62b7e6" data-bg-mid="#f7d2b2">
     <h1 class="fade-in">Hello, I am Zhang Shenbei<br>Welcome to My Page!</h1>
   </header>
 
   <main>
-    <section id="about" data-bg="#ffb2a4">
+    <section id="about" data-bg="#fbc8bd">
       <h2 class="section-title fade-in">About Me</h2>
       <p class="fade-in">A man is mysterious, nothing has been written yet.</p>
       <div class="eyes-wrapper fade-in-eyes" aria-hidden="true">
@@ -32,40 +33,44 @@
       </div>
     </section>
 
-    <section id="work" data-bg="#ffe066">
-      <h2 class="section-title fade-in">My Works</h2>
-      <div class="work-categories fade-in">
-        <div class="work-category" id="work-art-design">
-          <h3 class="work-subtitle">Art &amp; Design</h3>
-          <div class="work-rail">
-            <div class="rail-clip">
-              <div class="rail-track">
-                <a class="item" href="assets/img/a1.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/a1.jpg" alt="Art &amp; Design work a1" decoding="async" fetchpriority="high" loading="eager"></a>
-                <a class="item" href="assets/img/a2.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/a2.jpg" alt="Art &amp; Design work a2" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/a3.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/a3.jpg" alt="Art &amp; Design work a3" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/a4.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/a4.jpg" alt="Art &amp; Design work a4" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/d1.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/d1.jpg" alt="Art &amp; Design work d1" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/d2.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/d2.jpg" alt="Art &amp; Design work d2" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/d3.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/d3.jpg" alt="Art &amp; Design work d3" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/d4.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/d4.jpg" alt="Art &amp; Design work d4" decoding="async" loading="lazy"></a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="work-category" id="work-photo">
-          <h3 class="work-subtitle">Photography</h3>
-          <div class="work-rail">
-            <div class="rail-clip">
-              <div class="rail-track">
-                <a class="item" href="assets/img/p1.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/p1.jpg" alt="Photography p1" decoding="async" fetchpriority="high" loading="eager"></a>
-                <a class="item" href="assets/img/p2.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/p2.jpg" alt="Photography p2" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/p3.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/p3.jpg" alt="Photography p3" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/p4.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/p4.jpg" alt="Photography p4" decoding="async" loading="lazy"></a>
-                <a class="item" href="assets/img/p5.jpg" target="_blank" rel="noopener noreferrer"><img src="assets/img/p5.jpg" alt="Photography p5" decoding="async" loading="lazy"></a>
-              </div>
-            </div>
-          </div>
-        </div>
+    <section id="work" data-bg="#f4f4f0" aria-labelledby="works-title">
+      <h2 id="works-title" class="section-title fade-in">My Works</h2>
+
+      <div class="works-canvas">
+        <p class="works-orbit-title">Selected<br>Works</p>
+
+        <a class="selected-work" data-category="graphic" data-work="g-qzl" href="https://zsbszzz.github.io/shenbei-works/works/g-qzl.html" aria-label="Qizhen Lake — Graphic Design">
+          <span class="work-art"><img src="assets/img/works/g-qzl.jpg" alt="" width="900" height="636" loading="lazy" decoding="async"></span>
+        </a>
+
+        <a class="selected-work" data-category="illustration" data-work="i-cyf" href="https://zsbszzz.github.io/shenbei-works/works/i-cyf.html" aria-label="Cloudy Yunfeng — Illustration">
+          <span class="work-art"><img src="assets/img/works/i-cyf.jpg" alt="" width="900" height="675" loading="lazy" decoding="async"></span>
+        </a>
+
+        <a class="selected-work" data-category="spatial" data-work="s-luminaire" href="https://zsbszzz.github.io/shenbei-works/works/s-luminaire.html" aria-label="Luminaire — Spatial Product">
+          <span class="work-art"><img src="assets/img/works/s-luminaire/luminaire.png" alt="" width="436" height="900" loading="lazy" decoding="async"></span>
+        </a>
+
+        <a class="selected-work" data-category="photography" data-work="p-westlake" href="https://zsbszzz.github.io/shenbei-works/works/p-westlake.html" aria-label="West Lake Series — Photography">
+          <span class="work-art work-photo-stack">
+            <img src="assets/img/works/p-westlake/cover.jpg" alt="" width="900" height="472" loading="lazy" decoding="async">
+            <img src="assets/img/works/p-westlake/2.jpg" alt="" width="900" height="610" loading="lazy" decoding="async">
+            <img src="assets/img/works/p-westlake/3.jpg" alt="" width="900" height="600" loading="lazy" decoding="async">
+            <img src="assets/img/works/p-westlake/4.jpg" alt="" width="900" height="600" loading="lazy" decoding="async">
+          </span>
+        </a>
+
+        <a class="selected-work" data-category="experimental" data-work="e-silkie" href="https://zsbszzz.github.io/shenbei-works/works/e-silkie.html" aria-label="Silkie — Experimental &amp; Fun">
+          <span class="work-art"><img src="assets/img/works/e-silkie.png" alt="" width="789" height="900" loading="lazy" decoding="async"></span>
+        </a>
+
+        <a class="selected-work" data-category="experimental" data-work="e-delta" href="https://zsbszzz.github.io/shenbei-works/works/e-delta.html" aria-label="Delta — Experimental &amp; Fun">
+          <span class="work-art"><img src="assets/img/works/e-delta.png" alt="" width="900" height="599" loading="lazy" decoding="async"></span>
+        </a>
+      </div>
+
+      <div class="works-footer">
+        <a class="all-works-link" href="https://zsbszzz.github.io/shenbei-works/">Explore all works <span aria-hidden="true">↗</span></a>
       </div>
     </section>
 

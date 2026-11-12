@@ -13,9 +13,56 @@
   const state = { avatarShift: 0, navShift: 0, t: 0, scrollDistance: 320 };
 
   let ticking = false, retractRAF = null, programmaticScroll = false, navProgrammatic = false, lastY = scrollY;
+  let navColorScroll = null;
 
   const edgeGap = () => parseFloat(getComputedStyle(root).getPropertyValue('--edge-gap')) || 24;
   const isMobile = () => matchMedia('(max-width: 1360px)').matches;
+  const hexToRgb = hex => {
+    const s = hex.trim().replace('#', '');
+    const b = s.length === 3 ? s.split('').map(c => c + c).join('') : s;
+    const n = parseInt(b, 16);
+    return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
+  };
+  const palette = getComputedStyle(root);
+  const navColors = {
+    light: hexToRgb(palette.getPropertyValue('--color-white')),
+    works: hexToRgb(palette.getPropertyValue('--color-works-ink'))
+  };
+  const navColorFor = section => section?.id === 'work' ? navColors.works : navColors.light;
+
+  function clearNavColorScroll() {
+    navColorScroll = null;
+    navProgrammatic = false;
+    // Keep the last rendered color until the next scroll-position update.
+  }
+
+  function updateNavColorByScroll(from, to, progress) {
+    const journey = navColorScroll;
+    if (journey) {
+      const distance = journey.end - journey.start;
+      const arrived = Math.abs(scrollY - journey.end) < 1;
+      progress = arrived || Math.abs(distance) < 1 ? 1 : Math.min(1, Math.max(0, (scrollY - journey.start) / distance));
+      from = journey.from;
+      to = journey.to;
+    }
+    const channels = ['r', 'g', 'b'].map(channel => Math.round(from[channel] + (to[channel] - from[channel]) * progress));
+    topGroup.style.setProperty('--nav-color', `rgb(${channels.join(',')})`);
+    if (journey && progress === 1) {
+      // Retain the destination color when handing control back to manual scrolling.
+      requestAnimationFrame(() => { if (navColorScroll === journey) clearNavColorScroll(); });
+    }
+  }
+
+  function beginNavColorScroll(target) {
+    const [r, g, b] = getComputedStyle(nav).borderTopColor.match(/[\d.]+/g).map(Number);
+    navColorScroll = {
+      start: scrollY,
+      end: Math.min(target.offsetTop, Math.max(0, root.scrollHeight - innerHeight)),
+      from: { r, g, b },
+      to: navColorFor(target)
+    };
+    updateNavColorByScroll();
+  }
 
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); } });
@@ -23,12 +70,13 @@
   $$('.fade-in, .fade-in-eyes').forEach(el => io.observe(el));
 
   function computeShifts() {
-    const vw = innerWidth, gapEdge = edgeGap(), g = getComputedStyle(topGroup);
+    const vw = root.clientWidth, gapEdge = edgeGap(), g = getComputedStyle(topGroup);
     const groupGap = parseFloat(g.columnGap || g.gap) || 0;
     const avatarW = avatar.getBoundingClientRect().width, navW = nav.getBoundingClientRect().width;
     const centerLeft = vw / 2 - (avatarW + groupGap + navW) / 2;
     state.avatarShift = gapEdge - centerLeft;
     state.navShift = vw - gapEdge - navW - (centerLeft + avatarW + groupGap);
+    root.style.setProperty('--nav-right-gap', `${isMobile() ? centerLeft : gapEdge}px`);
     applyTransforms();
   }
 
@@ -66,14 +114,18 @@
 
   function goTopAndRetract() {
     const wasAtTop = scrollY === 0;
-    if (!wasAtTop) { programmaticScroll = true; scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (!wasAtTop) {
+      programmaticScroll = true;
+      beginNavColorScroll($('header'));
+      scrollTo({ top: 0, behavior: 'smooth' });
+    }
     avatar.classList.add('clicked');
     setTimeout(() => avatar.classList.remove('clicked'), DUR.clickAvatar);
     if (retractRAF) cancelAnimationFrame(retractRAF);
     const from = state.t, start = performance.now();
     (function step(now) {
       const p = Math.min(1, (now - start) / DUR.retract);
-      state.t = from * (1 - (1 - (1 - p) ** 3));
+      state.t = from * (1 - p) ** 3;
       applyTransforms();
       if (p < 1) retractRAF = requestAnimationFrame(step);
       else { retractRAF = null; if (wasAtTop) programmaticScroll = false; }
@@ -87,8 +139,8 @@
       const target = $(a.getAttribute('href'));
       if (target) {
         navProgrammatic = true;
+        beginNavColorScroll(target);
         target.scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => navProgrammatic = false, 800);
       }
       a.classList.add('clicked');
       setTimeout(() => a.classList.remove('clicked'), DUR.clickNav);
@@ -99,67 +151,176 @@
   new ResizeObserver(computeShifts).observe(nav);
   new ResizeObserver(computeShifts).observe(avatarWrap);
   addEventListener('scroll', onScroll, { passive: true });
-  addEventListener('resize', () => { computeShifts(); if (!isMobile()) topGroup.classList.remove('collapsed'); });
-  addEventListener('orientationchange', computeShifts);
+  addEventListener('scrollend', () => {
+    if (navColorScroll && Math.abs(scrollY - navColorScroll.end) < 1) updateBackgroundByScroll();
+  });
+  addEventListener('wheel', clearNavColorScroll, { passive: true });
+  addEventListener('touchstart', clearNavColorScroll, { passive: true });
+  addEventListener('keydown', event => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) clearNavColorScroll();
+  });
+  addEventListener('resize', () => { clearNavColorScroll(); computeShifts(); if (!isMobile()) topGroup.classList.remove('collapsed'); });
+  addEventListener('orientationchange', () => { clearNavColorScroll(); computeShifts(); });
   document.fonts?.ready.then(computeShifts);
   addEventListener('load', computeShifts);
   computeShifts();
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  const resetToTop = () => { scrollTo(0, 0); state.t = 0; applyTransforms(); updateBackgroundByScroll(); };
+  const returningFromWork = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+  const resetToTop = event => {
+    clearNavColorScroll();
+    const y = returningFromWork || event?.persisted ? Number(history.state?.workReturnY) || 0 : 0;
+    scrollTo(0, y);
+    state.t = Math.min(y / state.scrollDistance, 1);
+    applyTransforms();
+    updateBackgroundByScroll();
+  };
   addEventListener('pageshow', resetToTop);
   addEventListener('load', resetToTop);
 
   (function () {
-    const rails = [...$$('.work-rail')];
-    if (!rails.length) return;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const tracks = rails.map(rail => {
-      const el = rail.querySelector('.rail-track');
-      if (!el) return null;
-      if (!el.dataset.marqueeDoubled) {
-        [...el.children].forEach(n => el.appendChild(n.cloneNode(true)));
-        el.dataset.marqueeDoubled = '1';
-      }
-      return { rail, el, x: 0, half: 0, duration: 20, paused: false, enabled: !reduce, speed: 1 };
-    }).filter(Boolean);
-
-    const measure = () => tracks.forEach(t => t.half = t.el.scrollWidth / 2);
-    measure();
-    addEventListener('resize', measure);
-    addEventListener('orientationchange', measure);
-    $$('.rail-track img').forEach(img => { if (!img.complete) img.addEventListener('load', measure, { once: true }); });
-    tracks.forEach(t => {
-      t.rail.addEventListener('mouseenter', () => t.speed = 0.25);
-      t.rail.addEventListener('mouseleave', () => t.speed = 1);
-    });
-    addEventListener('blur', () => tracks.forEach(t => t.paused = true));
-    addEventListener('focus', () => tracks.forEach(t => t.paused = false));
-    if (!tracks.some(t => t.enabled)) return;
-
-    let last = performance.now();
-    (function tick(now) {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      tracks.forEach(t => {
-        if (!t.enabled || t.paused || !t.half) return;
-        t.x -= (t.half / t.duration) * t.speed * dt;
-        if (t.x <= -t.half) t.x += t.half;
-        t.el.style.transform = `translate3d(${t.x}px,0,0)`;
+    const work = $('#work');
+    const canvas = work?.querySelector('.works-canvas');
+    if (!canvas) return;
+    const title = canvas.querySelector('.works-orbit-title');
+    // Match the portfolio's cover-first stack: translucent, offset layers behind it.
+    canvas.querySelectorAll('.work-photo-stack').forEach(stack => {
+      [...stack.querySelectorAll('img')].slice(1).forEach((img, i) => {
+        const x = (Math.random() - 0.5) * 16;
+        const y = 4 + Math.random() * 8;
+        const angle = (Math.random() - 0.5) * 20;
+        img.style.zIndex = 99 - i;
+        img.style.setProperty('--stack-x', `${x}px`);
+        img.style.setProperty('--stack-y', `${y}px`);
+        img.style.setProperty('--stack-angle', `${angle}deg`);
+        img.style.setProperty('--spread-x', `${x * 2}px`);
+        img.style.setProperty('--spread-y', `${y * 1.4}px`);
+        img.style.setProperty('--spread-angle', `${angle * 1.6}deg`);
       });
-      requestAnimationFrame(tick);
-    })(performance.now());
+    });
+    const items = [...canvas.querySelectorAll('.selected-work')].map((el, i, all) => ({
+      el, angle: i / all.length * Math.PI * 2
+    }));
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    // Same tilted ellipse and front/back depth as shenbei-works' hero orbit.
+    const tilt = -0.209;
+    const cos = Math.cos(tilt), sin = Math.sin(tilt);
+    let radiusX = 0, radiusY = 0, width = 0, height = 0;
+    let frame = null, lastTime = null, visible = false, hovered = false, focused = false;
+    let pageActive = true, speed = 1, floatTime = 0;
+
+    const render = () => {
+      // Match the portfolio title's independent 5px horizontal and vertical drift.
+      const titleX = reduceMotion.matches ? 0 : Math.sin(floatTime * 0.001) * 5;
+      const titleY = reduceMotion.matches ? 0 : Math.cos(floatTime * 0.0008) * 5;
+      title.style.transform = `translate(calc(-50% + ${titleX}px), calc(-50% + ${titleY}px))`;
+      items.forEach(({ el, angle }) => {
+        const x = Math.cos(angle) * radiusX;
+        const y = Math.sin(angle) * radiusY;
+        const depth = Math.sin(angle);
+        const scale = 0.85 + (depth + 1) * 0.15;
+        Object.assign(el.style, {
+          left: `${width / 2 + x * cos - y * sin}px`,
+          top: `${height / 2 + x * sin + y * cos}px`,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          opacity: 0.9 + (Math.max(-1, Math.min(1, depth + 0.3)) + 1) * 0.05,
+          zIndex: el.matches(':focus-visible') ? 201 : depth < 0
+            ? Math.floor((depth + 1) * 99) + 1
+            : Math.floor(depth * 99) + 101
+        });
+      });
+    };
+
+    const tick = now => {
+      const dt = lastTime === null ? 0 : Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      floatTime += dt * 1000;
+      const targetSpeed = hovered || focused ? 0.25 : 1;
+      speed += (targetSpeed - speed) * (1 - Math.exp(-dt * 8));
+      items.forEach(item => item.angle += dt * 0.12 * speed);
+      render();
+      frame = requestAnimationFrame(tick);
+    };
+
+    const syncAnimation = () => {
+      if (pageActive && visible && !document.hidden && !reduceMotion.matches) {
+        if (frame === null) frame = requestAnimationFrame(tick);
+      } else {
+        if (frame !== null) cancelAnimationFrame(frame);
+        frame = null;
+        lastTime = null;
+      }
+      render();
+    };
+
+    const measure = () => {
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      radiusX = Math.min(width * 0.4, 550);
+      radiusY = Math.min(height * 0.22, 200);
+      // Fit the entire tilted orbit, including the largest foreground artwork.
+      const halfItem = Math.max(0, ...items.map(({ el }) => Math.max(el.offsetWidth, el.offsetHeight))) * 1.15 / 2;
+      const extentX = Math.hypot(radiusX * cos, radiusY * sin);
+      const extentY = Math.hypot(radiusX * sin, radiusY * cos);
+      const fit = Math.max(0, Math.min(1,
+        (width / 2 - halfItem - 12) / Math.max(1, extentX),
+        (height / 2 - halfItem - 12) / Math.max(1, extentY)));
+      radiusX *= fit;
+      radiusY *= fit;
+      render();
+    };
+
+    const observer = new IntersectionObserver(entries => {
+      visible = entries[0].isIntersecting;
+      syncAnimation();
+    });
+    observer.observe(canvas);
+    new ResizeObserver(measure).observe(canvas);
+    items.forEach(({ el }) => {
+      el.addEventListener('pointerenter', event => {
+        if (event.pointerType === 'touch') return;
+        hovered = true;
+        syncAnimation();
+      });
+      el.addEventListener('pointerleave', () => { hovered = false; syncAnimation(); });
+    });
+    canvas.addEventListener('focusin', () => { focused = true; syncAnimation(); });
+    canvas.addEventListener('focusout', event => {
+      focused = canvas.contains(event.relatedTarget);
+      syncAnimation();
+    });
+    addEventListener('pagehide', () => {
+      pageActive = false;
+      syncAnimation();
+    });
+    addEventListener('pageshow', () => {
+      // A cached page may retain focus/hover and an RAF id whose callback was discarded.
+      // Rebuild visibility after scroll restoration and explicitly start a fresh frame.
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      lastTime = null;
+      hovered = false;
+      focused = false;
+      speed = 1;
+      pageActive = true;
+      measure();
+      const bounds = canvas.getBoundingClientRect();
+      visible = bounds.bottom > 0 && bounds.top < innerHeight;
+      syncAnimation();
+    });
+    document.addEventListener('visibilitychange', syncAnimation);
+    reduceMotion.addEventListener('change', syncAnimation);
+    measure();
+    work.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        history.replaceState({ ...history.state, workReturnY: scrollY }, '');
+      });
+    });
   })();
 
   (function () {
     const els = [...$$('header[data-bg], section[data-bg]')];
     if (!els.length) return;
-    const hexToRgb = hex => {
-      const s = hex.replace('#', '');
-      const b = s.length === 3 ? s.split('').map(c => c + c).join('') : s;
-      const n = parseInt(b, 16);
-      return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
-    };
     let segments = [];
     const measureSegments = () => {
       segments = els.map((el, i) => {
@@ -168,7 +329,10 @@
           start: el.offsetTop,
           end: toEl ? toEl.offsetTop : document.documentElement.scrollHeight - innerHeight,
           fromColor: hexToRgb(el.dataset.bg || '#fff'),
-          toColor: hexToRgb(toEl?.dataset.bg || el.dataset.bg || '#fff')
+          midColor: el.dataset.bgMid ? hexToRgb(el.dataset.bgMid) : null,
+          toColor: hexToRgb(toEl?.dataset.bg || el.dataset.bg || '#fff'),
+          fromNavColor: navColorFor(el),
+          toNavColor: navColorFor(toEl || el)
         };
       });
     };
@@ -181,11 +345,22 @@
     window.updateBackgroundByScroll = () => {
       if (!segments.length) return;
       const y = scrollY;
-      let seg = segments.find((s, i) => y >= s.start && (i === segments.length - 1 || y < segments[i + 1].start)) || segments[0];
+      const seg = segments.find((s, i) => y >= s.start && (i === segments.length - 1 || y < segments[i + 1].start)) || segments[0];
       const span = Math.max(1, seg.end - seg.start);
       const t = Math.min(1, Math.max(0, (y - seg.start) / span));
-      const c = lerpColor(seg.fromColor, seg.toColor, t);
+      let c;
+      if (seg.midColor) {
+        // Pass through a bright midpoint, easing each half for a smooth color turn.
+        const p = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+        const eased = p * p * (3 - 2 * p);
+        c = t < 0.5
+          ? lerpColor(seg.fromColor, seg.midColor, eased)
+          : lerpColor(seg.midColor, seg.toColor, eased);
+      } else {
+        c = lerpColor(seg.fromColor, seg.toColor, t);
+      }
       document.body.style.backgroundColor = `rgb(${c.r},${c.g},${c.b})`;
+      updateNavColorByScroll(seg.fromNavColor, seg.toNavColor, t);
     };
     const doMeasure = () => { measureSegments(); updateBackgroundByScroll(); };
     document.fonts?.ready.then(doMeasure);
